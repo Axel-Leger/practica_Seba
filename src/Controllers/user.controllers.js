@@ -67,36 +67,38 @@ export const findStudentByIdCtrl = async (req, res) => {
   }
 };
 
-//PATCH /ModificarAlumno
+//PUT /ModificarAlumno
 export const updateStudentCtrl = async (req, res) => {
-  const studentId = +req.params.id;
+  console.log("estás editando");
+  const { id } = req.params;
+  console.log("el estudiante numero ", id);
   const { nombre_Alumno, Direccion } = req.body;
-
   try {
-    const [resultado] = await myPool.execute(
-      "UPDATE clasedealumnos SET nombre_Alumno = ? , Direccion = ? WHERE id = ?",
-      [nombre_Alumno, Direccion, studentId]
+    //buscar si la tarea esta en la base de datos
+    const [AlumnoEncontrado] = await myPool.query(
+      "SELECT * FROM clasedealumnos WHERE id=?",
+      [id]
     );
 
-    if ((resultado.affectedRows = 0)) {
-      return res.status(404).json({
-        msg: "NO SE ENCONTRO EL USARIO",
-      });
+    if (AlumnoEncontrado.length === 0) {
+      console.log("Alumno no encontrada");
+    } else {
+      const [resultado] = await myPool.query(
+        "UPDATE clasedealumnos SET nombre_Alumno=?,Direccion=? WHERE id=?",
+        [nombre_Alumno, Direccion, id]
+      );
+      if (!resultado.ok) {
+        return res
+          .status(200)
+          .json({ msg: "el alumno fue editada correctamente" });
+      } else {
+        return res
+          .status(404)
+          .json({ msg: "ocurrio un error al editar al alumno " });
+      }
     }
-
-    const [encontrarAlumno] = await myPool.execute(
-      "SELECT * FROM clasedealumnos WHERE id= ?",
-      [studentId]
-    );
-
-    res.status(202).json(encontrarAlumno[0]);
   } catch (error) {
-    console.log(error);
-
-    res.status(500),
-      json({
-        msg: "HUBO UN ERROR EN LA BASE DE DATOS",
-      });
+    res.status(500).json({ msg: "error interno del servidor", error });
   }
 };
 
@@ -116,7 +118,7 @@ export const deleteStudentCtrl = async (req, res) => {
       });
     }
 
-    res.status(201).json({
+    res.status(200).json({
       msg: "SE ELIMINO CON EXITO EL ALUMNO",
     });
   } catch (error) {
